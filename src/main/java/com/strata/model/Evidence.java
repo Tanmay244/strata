@@ -1,17 +1,20 @@
 package com.strata.model;
 
 import java.time.Instant;
+import java.util.Map;
 
-/** A single claim with a confidence score from one source. */
+/** A structured claim with a confidence score from one source. */
 public class Evidence {
 
   private String evidenceId;
   private String analysisId;
   private String requestId;
-  private String source;
+  private String sourceId;
   private String claim;
+  private String evidenceType;
   private double confidenceScore;
   private double normalizedConfidenceScore;
+  private Map<String, Object> metadata;
   private Instant submittedAt;
   private AcceptanceStatus acceptanceStatus;
 
@@ -45,14 +48,14 @@ public class Evidence {
     this.requestId = requestId;
   }
 
-  /** Returns source. */
-  public String getSource() {
-    return source;
+  /** Returns sourceId. */
+  public String getSourceId() {
+    return sourceId;
   }
 
-  /** Sets source. */
-  public void setSource(String source) {
-    this.source = source;
+  /** Sets sourceId. */
+  public void setSourceId(String sourceId) {
+    this.sourceId = sourceId;
   }
 
   /** Returns claim. */
@@ -63,6 +66,16 @@ public class Evidence {
   /** Sets claim. */
   public void setClaim(String claim) {
     this.claim = claim;
+  }
+
+  /** Returns evidenceType. */
+  public String getEvidenceType() {
+    return evidenceType;
+  }
+
+  /** Sets evidenceType. */
+  public void setEvidenceType(String evidenceType) {
+    this.evidenceType = evidenceType;
   }
 
   /** Returns confidenceScore. */
@@ -83,6 +96,16 @@ public class Evidence {
   /** Sets normalizedConfidenceScore. */
   public void setNormalizedConfidenceScore(double normalizedConfidenceScore) {
     this.normalizedConfidenceScore = normalizedConfidenceScore;
+  }
+
+  /** Returns metadata. */
+  public Map<String, Object> getMetadata() {
+    return metadata;
+  }
+
+  /** Sets metadata. */
+  public void setMetadata(Map<String, Object> metadata) {
+    this.metadata = metadata;
   }
 
   /** Returns submittedAt. */

@@ -1,13 +1,12 @@
 package com.strata.controller;
 
-import com.strata.dto.DetectConflictsRequest;
 import com.strata.dto.DetectConflictsResponse;
 import com.strata.service.ConflictService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** HTTP endpoint for Detect Conflicts. */
@@ -22,10 +21,10 @@ public class ConflictController {
   }
 
   /** Detect Conflicts. TODO(M4): implement. */
-  @PostMapping("/{analysisId}/conflicts")
+  @GetMapping("/{analysisId}/conflicts")
   public ResponseEntity<DetectConflictsResponse> detectConflicts(
       @PathVariable String analysisId,
-      @RequestBody DetectConflictsRequest request) {
-    return ResponseEntity.ok(service.detectConflicts(analysisId, request));
+      @RequestParam(required = false) Double conflictThreshold) {
+    return ResponseEntity.ok(service.detectConflicts(analysisId, conflictThreshold));
   }
 }

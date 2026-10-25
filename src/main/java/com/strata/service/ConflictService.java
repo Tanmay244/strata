@@ -1,6 +1,5 @@
 package com.strata.service;
 
-import com.strata.dto.DetectConflictsRequest;
 import com.strata.dto.DetectConflictsResponse;
 import org.springframework.stereotype.Service;
 
@@ -9,9 +8,8 @@ import org.springframework.stereotype.Service;
 public class ConflictService {
 
   /** Detect Conflicts. TODO(M4): implement. */
-  public DetectConflictsResponse detectConflicts(
-      String analysisId,
-      DetectConflictsRequest request) {
-    throw new UnsupportedOperationException("Detect Conflicts is not implemented yet");
+  public DetectConflictsResponse detectConflicts(String analysisId, Double conflictThreshold) {
+    throw new UnsupportedOperationException(
+        "Detect Conflicts is not implemented yet");
   }
 }

@@ -9,9 +9,8 @@ import org.springframework.stereotype.Service;
 public class EvidenceService {
 
   /** Submit Evidence. TODO(M3): implement. */
-  public SubmitEvidenceResponse submitEvidence(
-      String analysisId,
-      SubmitEvidenceRequest request) {
-    throw new UnsupportedOperationException("Submit Evidence is not implemented yet");
+  public SubmitEvidenceResponse submitEvidence(String analysisId, SubmitEvidenceRequest request) {
+    throw new UnsupportedOperationException(
+        "Submit Evidence is not implemented yet");
   }
 }

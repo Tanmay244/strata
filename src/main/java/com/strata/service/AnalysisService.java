@@ -9,8 +9,8 @@ import org.springframework.stereotype.Service;
 public class AnalysisService {
 
   /** Create Analysis. TODO(M2): implement. */
-  public CreateAnalysisResponse createAnalysis(
-      CreateAnalysisRequest request) {
-    throw new UnsupportedOperationException("Create Analysis is not implemented yet");
+  public CreateAnalysisResponse createAnalysis(CreateAnalysisRequest request) {
+    throw new UnsupportedOperationException(
+        "Create Analysis is not implemented yet");
   }
 }

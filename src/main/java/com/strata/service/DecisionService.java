@@ -12,6 +12,7 @@ public class DecisionService {
   public FinalizeDecisionResponse finalizeDecision(
       String analysisId,
       FinalizeDecisionRequest request) {
-    throw new UnsupportedOperationException("Finalize Decision is not implemented yet");
+    throw new UnsupportedOperationException(
+        "Finalize Decision is not implemented yet");
   }
 }

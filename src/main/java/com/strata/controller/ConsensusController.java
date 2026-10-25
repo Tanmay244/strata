@@ -1,12 +1,10 @@
 package com.strata.controller;
 
-import com.strata.dto.ComputeConsensusRequest;
 import com.strata.dto.ComputeConsensusResponse;
 import com.strata.service.ConsensusService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -24,8 +22,7 @@ public class ConsensusController {
   /** Compute Consensus. TODO(M5): implement. */
   @PostMapping("/{analysisId}/consensus")
   public ResponseEntity<ComputeConsensusResponse> computeConsensus(
-      @PathVariable String analysisId,
-      @RequestBody ComputeConsensusRequest request) {
-    return ResponseEntity.ok(service.computeConsensus(analysisId, request));
+      @PathVariable String analysisId) {
+    return ResponseEntity.ok(service.computeConsensus(analysisId));
   }
 }

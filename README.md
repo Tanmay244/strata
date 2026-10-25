@@ -41,7 +41,7 @@ Stubs return `501 Not Implemented` until the owning milestone lands.
 |---|---|---|
 | Create Analysis | `POST /analyses` | M2 |
 | Submit Evidence | `POST /analyses/{analysisId}/evidence` | M3 |
-| Detect Conflicts | `POST /analyses/{analysisId}/conflicts` | M4 |
+| Detect Conflicts | `GET /analyses/{analysisId}/conflicts?conflictThreshold=` (read-only) | M4 |
 | Compute Consensus | `POST /analyses/{analysisId}/consensus` | M5 |
 | Finalize Decision | `POST /analyses/{analysisId}/decision` | M2 |
 

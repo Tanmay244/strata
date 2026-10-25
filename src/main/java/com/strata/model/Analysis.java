@@ -2,12 +2,14 @@ package com.strata.model;
 
 import java.time.Instant;
 
-/** A topic under analysis that evidence is submitted against. */
+/** A decision-making topic that evidence is submitted against. */
 public class Analysis {
 
   private String analysisId;
   private String requestId;
   private String topic;
+  private String description;
+  private int minimumEvidenceCount;
   private AnalysisStatus status;
   private Instant createdAt;
 
@@ -39,6 +41,26 @@ public class Analysis {
   /** Sets topic. */
   public void setTopic(String topic) {
     this.topic = topic;
+  }
+
+  /** Returns description. */
+  public String getDescription() {
+    return description;
+  }
+
+  /** Sets description. */
+  public void setDescription(String description) {
+    this.description = description;
+  }
+
+  /** Returns minimumEvidenceCount. */
+  public int getMinimumEvidenceCount() {
+    return minimumEvidenceCount;
+  }
+
+  /** Sets minimumEvidenceCount. */
+  public void setMinimumEvidenceCount(int minimumEvidenceCount) {
+    this.minimumEvidenceCount = minimumEvidenceCount;
   }
 
   /** Returns status. */
