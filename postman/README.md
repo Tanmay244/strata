@@ -29,6 +29,9 @@ missing analyses, insufficient accepted evidence, and repeatability after failed
 The default request saves a baseline for subsequent assertions. Java tests separately
 verify that stored records and ID counters do not change.
 
+These 20 Postman requests remain available independently of the initial-iteration Java
+suite. They are not included in the JaCoCo report, which measures Java tests only.
+
 For a command-line run with Node.js/npm:
 
 ```bash
@@ -61,6 +64,4 @@ the success assertions. Run the six workflow requests in numbered order, excludi
 **M4 isolated tests** subfolder. Alternatively, once those milestones are implemented,
 start both the normal server and fixture server to run the entire collection.
 
-Teammates should add endpoint-specific cases under their numbered folders and reconcile
-the proposed workflow fields with their finalized DTO contracts. Do not weaken assertions
-to accept 501 responses as success. No API keys or external LLM services are required.
+

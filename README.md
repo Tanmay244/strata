@@ -75,6 +75,9 @@ claims within an analysis as alternative categorical recommendations:
 5. Return a pair when severity is positive and `>= conflictThreshold`. A zero threshold
    still excludes identical claims with identical confidence.
 
+Scoring uses decimal arithmetic on the stored confidence values before returning a numeric
+severity, so values such as `0.7` and `0.6` correctly meet an inclusive threshold of `0.65`.
+
 These rules detect different recommendations and large confidence differences, including
 confidence differences for matching claims. They assume M3 supplies valid accepted records
 with non-null identifiers/claims and normalized confidence in `[0, 1]`. They do not infer
@@ -127,9 +130,11 @@ See [Postman instructions](postman/README.md) for fixture startup, running tests
 merge, and the later five-operation workflow. The fixture launcher is under `src/test` and
 is excluded from the production JAR.
 
-Run `mvn verify` for Checkstyle, Mockito service tests, Spring MockMvc API tests, and the
-existing skeleton tests. M4 tests cover scoring, thresholds, rejected/same-source evidence,
-missing analyses, insufficient evidence, response ordering, repeatability and no mutation.
+Run `mvn verify` for Checkstyle, Mockito service tests, a Spring MockMvc HTTP contract test,
+and the existing skeleton tests. The initial-iteration Java suite has 10 tests: 2 for M4
+and 8 from the skeleton. M4 retains the default-threshold scoring path, response ordering,
+read-only store interactions, and HTTP response serialization.
+The controller test mocks the service; Postman separately exercises the live endpoint.
 
 ## M4 AI assistance disclosure
 

@@ -4,6 +4,7 @@ import com.strata.dto.DetectConflictsResponse;
 import com.strata.model.AcceptanceStatus;
 import com.strata.model.Evidence;
 import com.strata.store.InMemoryStore;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -85,14 +86,16 @@ public class ConflictService {
   }
 
   private static double severity(Evidence first, Evidence second) {
-    double firstConfidence = first.getNormalizedConfidenceScore();
-    double secondConfidence = second.getNormalizedConfidenceScore();
+    // Use the decimal representation of stored scores so .7 and .6 average to exactly .65.
+    // This preserves inclusive threshold boundaries without accepting scores via an epsilon.
+    BigDecimal firstConfidence = BigDecimal.valueOf(first.getNormalizedConfidenceScore());
+    BigDecimal secondConfidence = BigDecimal.valueOf(second.getNormalizedConfidenceScore());
     // Different recommendations score by average confidence. A large confidence gap can
     // also be a conflict, even when claims match. Both components remain in [0, 1].
     // Example: APPROVE/.9 versus REJECT/.7 gives max(.8, .2) = .8.
-    double disagreement = normalize(first.getClaim()).equals(normalize(second.getClaim()))
-        ? 0 : (firstConfidence + secondConfidence) / 2;
-    return Math.max(disagreement, Math.abs(firstConfidence - secondConfidence));
+    BigDecimal disagreement = normalize(first.getClaim()).equals(normalize(second.getClaim()))
+        ? BigDecimal.ZERO : firstConfidence.add(secondConfidence).divide(BigDecimal.valueOf(2));
+    return disagreement.max(firstConfidence.subtract(secondConfidence).abs()).doubleValue();
   }
 
   private static String normalize(String claim) {
