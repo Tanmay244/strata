@@ -28,9 +28,17 @@ public class ConsensusService {
   }
 
   /** Computes and stores the highest-confidence compatible claim. */
-  public ComputeConsensusResponse computeConsensus(String analysisId) {
+  public synchronized ComputeConsensusResponse computeConsensus(String analysisId) {
     requireAnalysisId(analysisId);
     Analysis analysis = findAnalysis(analysisId);
+    ConsensusResult existingResult = store.findConsensusByAnalysis(analysisId).orElse(null);
+    if (existingResult != null) {
+      return toResponse(existingResult);
+    }
+    if (analysis.getStatus() == AnalysisStatus.FINALIZED) {
+      throw new ResponseStatusException(
+          HttpStatus.CONFLICT, "Finalized analysis cannot compute consensus");
+    }
     List<Evidence> acceptedEvidence = findAcceptedEvidence(analysisId);
     validateEvidenceCount(acceptedEvidence, analysis.getMinimumEvidenceCount());
     ConsensusSelection selection = selectConsensus(acceptedEvidence);
@@ -54,7 +62,8 @@ public class ConsensusService {
   private List<Evidence> findAcceptedEvidence(String analysisId) {
     return store.findEvidenceByAnalysis(analysisId).stream()
         .filter(item -> item.getAcceptanceStatus() == AcceptanceStatus.ACCEPTED)
-        .sorted(Comparator.comparing(Evidence::getEvidenceId))
+        .sorted(Comparator.comparing(
+            Evidence::getEvidenceId, Comparator.nullsLast(Comparator.naturalOrder())))
         .toList();
   }
 
