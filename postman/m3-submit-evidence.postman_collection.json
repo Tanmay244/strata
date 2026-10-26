@@ -1,0 +1,978 @@
+{
+  "info": {
+    "name": "Strata M3 - Submit Evidence",
+    "description": "AI-assisted M3 API tests. Run the whole collection in order against the test-only fixture launcher; see README. No production fixture endpoints are added.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "analysisId",
+      "value": "m3-open"
+    },
+    {
+      "key": "readyAnalysisId",
+      "value": "m3-ready"
+    },
+    {
+      "key": "finalizedAnalysisId",
+      "value": "m3-finalized"
+    }
+  ],
+  "item": [
+    {
+      "name": "Op2 Submit Evidence",
+      "item": [
+        {
+          "name": "Accept evidence",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses/{{analysisId}}/evidence",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{runId}}-submit\",\n  \"sourceId\": \"{{runId}}-source\",\n  \"claim\": \"  Accept   the change  \",\n  \"confidenceScore\": 0.8,\n  \"evidenceType\": \" review \",\n  \"metadata\": {\n    \"url\": \"https://example.com/review\",\n    \"checks\": [\n      \"security\",\n      \"performance\"\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"runId\", pm.variables.replaceIn(\"{{$guid}}\"));",
+                  "pm.collectionVariables.unset(\"receipt\");"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const receipt = pm.response.json();",
+                  "pm.test(\"Receipt fields\", () => {",
+                  "  pm.expect(receipt.evidenceId).to.be.a(\"string\");",
+                  "  pm.expect(receipt.normalizedConfidenceScore).to.eql(0.8);",
+                  "  pm.expect(receipt.acceptanceStatus).to.eql(\"ACCEPTED\");",
+                  "  pm.expect(Number.isNaN(Date.parse(receipt.submittedAt))).to.eql(false);",
+                  "});",
+                  "pm.collectionVariables.set(\"receipt\", JSON.stringify(receipt));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Retry returns original receipt",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses/{{analysisId}}/evidence",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{runId}}-submit\",\n  \"sourceId\": \"{{runId}}-source\",\n  \"claim\": \"  Accept   the change  \",\n  \"confidenceScore\": 0.8,\n  \"evidenceType\": \" review \",\n  \"metadata\": {\n    \"url\": \"https://example.com/review\",\n    \"checks\": [\n      \"security\",\n      \"performance\"\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Original receipt is unchanged\", () => pm.expect(pm.response.json()).to.deep.eql(",
+                  "  JSON.parse(pm.collectionVariables.get(\"receipt\"))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Same requestId with changed payload",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses/{{analysisId}}/evidence",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{runId}}-submit\",\n  \"sourceId\": \"{{runId}}-source\",\n  \"claim\": \"Reject the change\",\n  \"confidenceScore\": 0.8,\n  \"evidenceType\": \" review \",\n  \"metadata\": {\n    \"url\": \"https://example.com/review\",\n    \"checks\": [\n      \"security\",\n      \"performance\"\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Same requestId on another analysis",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses/{{readyAnalysisId}}/evidence",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{runId}}-submit\",\n  \"sourceId\": \"{{runId}}-source\",\n  \"claim\": \"  Accept   the change  \",\n  \"confidenceScore\": 0.8,\n  \"evidenceType\": \" review \",\n  \"metadata\": {\n    \"url\": \"https://example.com/review\",\n    \"checks\": [\n      \"security\",\n      \"performance\"\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Duplicate evidence with a new requestId",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses/{{analysisId}}/evidence",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{runId}}-duplicate\",\n  \"sourceId\": \"{{runId}}-source\",\n  \"claim\": \"  Accept   the change  \",\n  \"confidenceScore\": 0.8,\n  \"evidenceType\": \" review \",\n  \"metadata\": {\n    \"url\": \"https://example.com/review\",\n    \"checks\": [\n      \"security\",\n      \"performance\"\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Missing requestId",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses/{{analysisId}}/evidence",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sourceId\": \"{{runId}}-source\",\n  \"claim\": \"  Accept   the change  \",\n  \"confidenceScore\": 0.8,\n  \"evidenceType\": \" review \",\n  \"metadata\": {\n    \"url\": \"https://example.com/review\",\n    \"checks\": [\n      \"security\",\n      \"performance\"\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Missing sourceId",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses/{{analysisId}}/evidence",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{runId}}-missing-sourceId\",\n  \"claim\": \"  Accept   the change  \",\n  \"confidenceScore\": 0.8,\n  \"evidenceType\": \" review \",\n  \"metadata\": {\n    \"url\": \"https://example.com/review\",\n    \"checks\": [\n      \"security\",\n      \"performance\"\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Missing claim",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses/{{analysisId}}/evidence",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{runId}}-missing-claim\",\n  \"sourceId\": \"{{runId}}-source\",\n  \"confidenceScore\": 0.8,\n  \"evidenceType\": \" review \",\n  \"metadata\": {\n    \"url\": \"https://example.com/review\",\n    \"checks\": [\n      \"security\",\n      \"performance\"\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Missing confidenceScore",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses/{{analysisId}}/evidence",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{runId}}-missing-confidenceScore\",\n  \"sourceId\": \"{{runId}}-source\",\n  \"claim\": \"  Accept   the change  \",\n  \"evidenceType\": \" review \",\n  \"metadata\": {\n    \"url\": \"https://example.com/review\",\n    \"checks\": [\n      \"security\",\n      \"performance\"\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Missing evidenceType",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses/{{analysisId}}/evidence",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{runId}}-missing-evidenceType\",\n  \"sourceId\": \"{{runId}}-source\",\n  \"claim\": \"  Accept   the change  \",\n  \"confidenceScore\": 0.8,\n  \"metadata\": {\n    \"url\": \"https://example.com/review\",\n    \"checks\": [\n      \"security\",\n      \"performance\"\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Blank requestId",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses/{{analysisId}}/evidence",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \" \\t \",\n  \"sourceId\": \"{{runId}}-source\",\n  \"claim\": \"  Accept   the change  \",\n  \"confidenceScore\": 0.8,\n  \"evidenceType\": \" review \",\n  \"metadata\": {\n    \"url\": \"https://example.com/review\",\n    \"checks\": [\n      \"security\",\n      \"performance\"\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Blank sourceId",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses/{{analysisId}}/evidence",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{runId}}-blank-sourceId\",\n  \"sourceId\": \" \\t \",\n  \"claim\": \"  Accept   the change  \",\n  \"confidenceScore\": 0.8,\n  \"evidenceType\": \" review \",\n  \"metadata\": {\n    \"url\": \"https://example.com/review\",\n    \"checks\": [\n      \"security\",\n      \"performance\"\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Blank claim",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses/{{analysisId}}/evidence",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{runId}}-blank-claim\",\n  \"sourceId\": \"{{runId}}-source\",\n  \"claim\": \" \\t \",\n  \"confidenceScore\": 0.8,\n  \"evidenceType\": \" review \",\n  \"metadata\": {\n    \"url\": \"https://example.com/review\",\n    \"checks\": [\n      \"security\",\n      \"performance\"\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Blank evidenceType",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses/{{analysisId}}/evidence",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{runId}}-blank-evidenceType\",\n  \"sourceId\": \"{{runId}}-source\",\n  \"claim\": \"  Accept   the change  \",\n  \"confidenceScore\": 0.8,\n  \"evidenceType\": \" \\t \",\n  \"metadata\": {\n    \"url\": \"https://example.com/review\",\n    \"checks\": [\n      \"security\",\n      \"performance\"\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Negative confidence",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses/{{analysisId}}/evidence",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{runId}}-Negative-confidence\",\n  \"sourceId\": \"{{runId}}-source\",\n  \"claim\": \"  Accept   the change  \",\n  \"confidenceScore\": -0.01,\n  \"evidenceType\": \" review \",\n  \"metadata\": {\n    \"url\": \"https://example.com/review\",\n    \"checks\": [\n      \"security\",\n      \"performance\"\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Confidence above one",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses/{{analysisId}}/evidence",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{runId}}-Confidence-above-one\",\n  \"sourceId\": \"{{runId}}-source\",\n  \"claim\": \"  Accept   the change  \",\n  \"confidenceScore\": 1.01,\n  \"evidenceType\": \" review \",\n  \"metadata\": {\n    \"url\": \"https://example.com/review\",\n    \"checks\": [\n      \"security\",\n      \"performance\"\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Null confidence",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses/{{analysisId}}/evidence",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{runId}}-Null-confidence\",\n  \"sourceId\": \"{{runId}}-source\",\n  \"claim\": \"  Accept   the change  \",\n  \"confidenceScore\": null,\n  \"evidenceType\": \" review \",\n  \"metadata\": {\n    \"url\": \"https://example.com/review\",\n    \"checks\": [\n      \"security\",\n      \"performance\"\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Nonnumeric confidence",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses/{{analysisId}}/evidence",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{runId}}-Nonnumeric-confidence\",\n  \"sourceId\": \"{{runId}}-source\",\n  \"claim\": \"  Accept   the change  \",\n  \"confidenceScore\": \"bad\",\n  \"evidenceType\": \" review \",\n  \"metadata\": {\n    \"url\": \"https://example.com/review\",\n    \"checks\": [\n      \"security\",\n      \"performance\"\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Confidence boundary 0",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses/{{analysisId}}/evidence",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{runId}}-boundary-0\",\n  \"sourceId\": \"{{runId}}-source\",\n  \"claim\": \"  Accept   the change  \",\n  \"confidenceScore\": 0,\n  \"evidenceType\": \" review \",\n  \"metadata\": {\n    \"url\": \"https://example.com/review\",\n    \"checks\": [\n      \"security\",\n      \"performance\"\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Boundary preserved\", () => pm.expect(pm.response.json().normalizedConfidenceScore).to.eql(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Confidence boundary 1",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses/{{analysisId}}/evidence",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{runId}}-boundary-1\",\n  \"sourceId\": \"{{runId}}-source\",\n  \"claim\": \"  Accept   the change  \",\n  \"confidenceScore\": 1,\n  \"evidenceType\": \" review \",\n  \"metadata\": {\n    \"url\": \"https://example.com/review\",\n    \"checks\": [\n      \"security\",\n      \"performance\"\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Boundary preserved\", () => pm.expect(pm.response.json().normalizedConfidenceScore).to.eql(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Unknown analysis",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses/m3-missing-{{runId}}/evidence",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{runId}}-missing-analysis\",\n  \"sourceId\": \"{{runId}}-source\",\n  \"claim\": \"  Accept   the change  \",\n  \"confidenceScore\": 0.8,\n  \"evidenceType\": \" review \",\n  \"metadata\": {\n    \"url\": \"https://example.com/review\",\n    \"checks\": [\n      \"security\",\n      \"performance\"\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "READY analysis",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses/{{readyAnalysisId}}/evidence",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{runId}}-ready\",\n  \"sourceId\": \"{{runId}}-source\",\n  \"claim\": \"  Accept   the change  \",\n  \"confidenceScore\": 0.8,\n  \"evidenceType\": \" review \",\n  \"metadata\": {\n    \"url\": \"https://example.com/review\",\n    \"checks\": [\n      \"security\",\n      \"performance\"\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "FINALIZED analysis",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses/{{finalizedAnalysisId}}/evidence",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{runId}}-finalized\",\n  \"sourceId\": \"{{runId}}-source\",\n  \"claim\": \"  Accept   the change  \",\n  \"confidenceScore\": 0.8,\n  \"evidenceType\": \" review \",\n  \"metadata\": {\n    \"url\": \"https://example.com/review\",\n    \"checks\": [\n      \"security\",\n      \"performance\"\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Malformed JSON",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses/{{analysisId}}/evidence",
+            "body": {
+              "mode": "raw",
+              "raw": "{",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Null body",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses/{{analysisId}}/evidence",
+            "body": {
+              "mode": "raw",
+              "raw": "null",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Missing body",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses/{{analysisId}}/evidence",
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Invalid metadata type",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses/{{analysisId}}/evidence",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{runId}}-metadata\",\n  \"sourceId\": \"{{runId}}-source\",\n  \"claim\": \"  Accept   the change  \",\n  \"confidenceScore\": 0.8,\n  \"evidenceType\": \" review \",\n  \"metadata\": \"invalid\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Evidence without optional metadata",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses/{{analysisId}}/evidence",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{runId}}-no-metadata\",\n  \"sourceId\": \"{{runId}}-other-source\",\n  \"claim\": \"  Accept   the change  \",\n  \"confidenceScore\": 0.8,\n  \"evidenceType\": \" review \"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
