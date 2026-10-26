@@ -1,0 +1,858 @@
+{
+  "info": {
+    "name": "Strata - five operations",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "AI-assisted M4 collection. Run folder 'M4 isolated tests' against the test-only fixture server before M2/M3 merge. The numbered operation requests form a future integration workflow and require M2, M3 and M5; their assertions intentionally fail against stubs. See postman/README.md."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "fixtureBaseUrl",
+      "value": "http://127.0.0.1:8081"
+    },
+    {
+      "key": "analysisId",
+      "value": ""
+    },
+    {
+      "key": "consensusResultId",
+      "value": ""
+    },
+    {
+      "key": "runId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Create Analysis (M2)",
+      "item": [
+        {
+          "name": "Create analysis",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{runId}}-analysis\",\n  \"topic\": \"Software change review\",\n  \"description\": \"Combine independent review-agent recommendations\",\n  \"minimumEvidenceCount\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('runId', pm.variables.replaceIn('{{$guid}}'));",
+                  "pm.collectionVariables.unset('analysisId');",
+                  "pm.collectionVariables.unset('consensusResultId');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Success status', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                  "const strataResult = pm.response.json();",
+                  "pm.test('Created OPEN analysis', () => { pm.expect(strataResult.analysisId).to.be.a('string').and.not.empty; pm.expect(strataResult.status).to.equal('OPEN'); });",
+                  "if (strataResult.analysisId) pm.collectionVariables.set('analysisId', strataResult.analysisId);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 - Submit Evidence (M3)",
+      "item": [
+        {
+          "name": "Submit agent-a",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses/{{analysisId}}/evidence",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{runId}}-agent-a\",\n  \"sourceId\": \"agent-a\",\n  \"claim\": \"APPROVE\",\n  \"confidenceScore\": 0.9,\n  \"evidenceType\": \"recommendation\",\n  \"metadata\": {\n    \"component\": \"agent-a\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Success status', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                  "const strataResult = pm.response.json();",
+                  "pm.test('Accepted evidence', () => { pm.expect(strataResult.acceptanceStatus).to.equal('ACCEPTED'); pm.expect(strataResult.evidenceId).to.be.a('string').and.not.empty; pm.expect(strataResult.normalizedConfidenceScore).to.be.within(0, 1); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Submit agent-b",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses/{{analysisId}}/evidence",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{runId}}-agent-b\",\n  \"sourceId\": \"agent-b\",\n  \"claim\": \"REJECT\",\n  \"confidenceScore\": 0.7,\n  \"evidenceType\": \"recommendation\",\n  \"metadata\": {\n    \"component\": \"agent-b\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Success status', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                  "const strataResult = pm.response.json();",
+                  "pm.test('Accepted evidence', () => { pm.expect(strataResult.acceptanceStatus).to.equal('ACCEPTED'); pm.expect(strataResult.evidenceId).to.be.a('string').and.not.empty; pm.expect(strataResult.normalizedConfidenceScore).to.be.within(0, 1); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 - Detect Conflicts (M4)",
+      "item": [
+        {
+          "name": "Detect workflow conflicts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/analyses/{{analysisId}}/conflicts"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const strataResult = pm.response.json();",
+                  "pm.test('Report contains three aligned arrays', () => {",
+                  "  pm.expect(strataResult).to.have.all.keys('conflictingSourcePairs', 'conflictSeverityScores', 'conflictingClaims');",
+                  "  pm.expect(strataResult.conflictingSourcePairs).to.be.an('array');",
+                  "  pm.expect(strataResult.conflictSeverityScores).to.be.an('array');",
+                  "  pm.expect(strataResult.conflictingClaims).to.be.an('array');",
+                  "  pm.expect(strataResult.conflictSeverityScores.length).to.equal(strataResult.conflictingSourcePairs.length);",
+                  "  pm.expect(strataResult.conflictingClaims.length).to.equal(strataResult.conflictingSourcePairs.length);",
+                  "  strataResult.conflictingSourcePairs.forEach(pair => pm.expect(pair).to.have.lengthOf(2));",
+                  "  strataResult.conflictingClaims.forEach(pair => pm.expect(pair).to.have.lengthOf(2));",
+                  "  strataResult.conflictSeverityScores.forEach(score => pm.expect(score).to.be.within(0, 1));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "M4 isolated tests",
+          "description": "Deterministic fixture scenarios; independent of all unimplemented operations. Run this folder in order.",
+          "item": [
+            {
+              "name": "Default threshold 0.6",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{fixtureBaseUrl}}/analyses/m4-conflicts/conflicts"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "const strataResult = pm.response.json();",
+                      "pm.test('Report contains three aligned arrays', () => {",
+                      "  pm.expect(strataResult).to.have.all.keys('conflictingSourcePairs', 'conflictSeverityScores', 'conflictingClaims');",
+                      "  pm.expect(strataResult.conflictingSourcePairs).to.be.an('array');",
+                      "  pm.expect(strataResult.conflictSeverityScores).to.be.an('array');",
+                      "  pm.expect(strataResult.conflictingClaims).to.be.an('array');",
+                      "  pm.expect(strataResult.conflictSeverityScores.length).to.equal(strataResult.conflictingSourcePairs.length);",
+                      "  pm.expect(strataResult.conflictingClaims.length).to.equal(strataResult.conflictingSourcePairs.length);",
+                      "  strataResult.conflictingSourcePairs.forEach(pair => pm.expect(pair).to.have.lengthOf(2));",
+                      "  strataResult.conflictingClaims.forEach(pair => pm.expect(pair).to.have.lengthOf(2));",
+                      "  strataResult.conflictSeverityScores.forEach(score => pm.expect(score).to.be.within(0, 1));",
+                      "});",
+                      "pm.test('Expected accepted evidence pairs in stable order', () => {",
+                      "  pm.expect(strataResult.conflictingSourcePairs).to.eql([['agent-a', 'agent-b'], ['agent-b', 'agent-c']]);",
+                      "  pm.expect(strataResult.conflictSeverityScores).to.eql([0.8, 0.8]);",
+                      "  pm.expect(strataResult.conflictingClaims).to.eql([['APPROVE', 'REJECT'], ['REJECT', 'approve']]);",
+                      "});",
+                      "pm.collectionVariables.set('m4Baseline', JSON.stringify(strataResult));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Explicit default equals omitted threshold",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{fixtureBaseUrl}}/analyses/m4-conflicts/conflicts?conflictThreshold=0.6"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "const strataResult = pm.response.json();",
+                      "pm.test('Report contains three aligned arrays', () => {",
+                      "  pm.expect(strataResult).to.have.all.keys('conflictingSourcePairs', 'conflictSeverityScores', 'conflictingClaims');",
+                      "  pm.expect(strataResult.conflictingSourcePairs).to.be.an('array');",
+                      "  pm.expect(strataResult.conflictSeverityScores).to.be.an('array');",
+                      "  pm.expect(strataResult.conflictingClaims).to.be.an('array');",
+                      "  pm.expect(strataResult.conflictSeverityScores.length).to.equal(strataResult.conflictingSourcePairs.length);",
+                      "  pm.expect(strataResult.conflictingClaims.length).to.equal(strataResult.conflictingSourcePairs.length);",
+                      "  strataResult.conflictingSourcePairs.forEach(pair => pm.expect(pair).to.have.lengthOf(2));",
+                      "  strataResult.conflictingClaims.forEach(pair => pm.expect(pair).to.have.lengthOf(2));",
+                      "  strataResult.conflictSeverityScores.forEach(score => pm.expect(score).to.be.within(0, 1));",
+                      "});",
+                      "pm.test('Expected accepted evidence pairs in stable order', () => {",
+                      "  pm.expect(strataResult.conflictingSourcePairs).to.eql([['agent-a', 'agent-b'], ['agent-b', 'agent-c']]);",
+                      "  pm.expect(strataResult.conflictSeverityScores).to.eql([0.8, 0.8]);",
+                      "  pm.expect(strataResult.conflictingClaims).to.eql([['APPROVE', 'REJECT'], ['REJECT', 'approve']]);",
+                      "});",
+                      "pm.test('Matches default response', () => pm.expect(strataResult).to.eql(JSON.parse(pm.collectionVariables.get('m4Baseline'))));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Inclusive threshold boundary",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{fixtureBaseUrl}}/analyses/m4-conflicts/conflicts?conflictThreshold=0.8"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "const strataResult = pm.response.json();",
+                      "pm.test('Report contains three aligned arrays', () => {",
+                      "  pm.expect(strataResult).to.have.all.keys('conflictingSourcePairs', 'conflictSeverityScores', 'conflictingClaims');",
+                      "  pm.expect(strataResult.conflictingSourcePairs).to.be.an('array');",
+                      "  pm.expect(strataResult.conflictSeverityScores).to.be.an('array');",
+                      "  pm.expect(strataResult.conflictingClaims).to.be.an('array');",
+                      "  pm.expect(strataResult.conflictSeverityScores.length).to.equal(strataResult.conflictingSourcePairs.length);",
+                      "  pm.expect(strataResult.conflictingClaims.length).to.equal(strataResult.conflictingSourcePairs.length);",
+                      "  strataResult.conflictingSourcePairs.forEach(pair => pm.expect(pair).to.have.lengthOf(2));",
+                      "  strataResult.conflictingClaims.forEach(pair => pm.expect(pair).to.have.lengthOf(2));",
+                      "  strataResult.conflictSeverityScores.forEach(score => pm.expect(score).to.be.within(0, 1));",
+                      "});",
+                      "pm.test('Expected accepted evidence pairs in stable order', () => {",
+                      "  pm.expect(strataResult.conflictingSourcePairs).to.eql([['agent-a', 'agent-b'], ['agent-b', 'agent-c']]);",
+                      "  pm.expect(strataResult.conflictSeverityScores).to.eql([0.8, 0.8]);",
+                      "  pm.expect(strataResult.conflictingClaims).to.eql([['APPROVE', 'REJECT'], ['REJECT', 'approve']]);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Higher threshold excludes conflicts",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{fixtureBaseUrl}}/analyses/m4-conflicts/conflicts?conflictThreshold=0.81"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "const strataResult = pm.response.json();",
+                      "pm.test('Report contains three aligned arrays', () => {",
+                      "  pm.expect(strataResult).to.have.all.keys('conflictingSourcePairs', 'conflictSeverityScores', 'conflictingClaims');",
+                      "  pm.expect(strataResult.conflictingSourcePairs).to.be.an('array');",
+                      "  pm.expect(strataResult.conflictSeverityScores).to.be.an('array');",
+                      "  pm.expect(strataResult.conflictingClaims).to.be.an('array');",
+                      "  pm.expect(strataResult.conflictSeverityScores.length).to.equal(strataResult.conflictingSourcePairs.length);",
+                      "  pm.expect(strataResult.conflictingClaims.length).to.equal(strataResult.conflictingSourcePairs.length);",
+                      "  strataResult.conflictingSourcePairs.forEach(pair => pm.expect(pair).to.have.lengthOf(2));",
+                      "  strataResult.conflictingClaims.forEach(pair => pm.expect(pair).to.have.lengthOf(2));",
+                      "  strataResult.conflictSeverityScores.forEach(score => pm.expect(score).to.be.within(0, 1));",
+                      "});",
+                      "pm.test('No conflicts', () => {",
+                      "  pm.expect(strataResult.conflictingSourcePairs).to.eql([]);",
+                      "  pm.expect(strataResult.conflictSeverityScores).to.eql([]);",
+                      "  pm.expect(strataResult.conflictingClaims).to.eql([]);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Lower boundary zero",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{fixtureBaseUrl}}/analyses/m4-conflicts/conflicts?conflictThreshold=0"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "const strataResult = pm.response.json();",
+                      "pm.test('Report contains three aligned arrays', () => {",
+                      "  pm.expect(strataResult).to.have.all.keys('conflictingSourcePairs', 'conflictSeverityScores', 'conflictingClaims');",
+                      "  pm.expect(strataResult.conflictingSourcePairs).to.be.an('array');",
+                      "  pm.expect(strataResult.conflictSeverityScores).to.be.an('array');",
+                      "  pm.expect(strataResult.conflictingClaims).to.be.an('array');",
+                      "  pm.expect(strataResult.conflictSeverityScores.length).to.equal(strataResult.conflictingSourcePairs.length);",
+                      "  pm.expect(strataResult.conflictingClaims.length).to.equal(strataResult.conflictingSourcePairs.length);",
+                      "  strataResult.conflictingSourcePairs.forEach(pair => pm.expect(pair).to.have.lengthOf(2));",
+                      "  strataResult.conflictingClaims.forEach(pair => pm.expect(pair).to.have.lengthOf(2));",
+                      "  strataResult.conflictSeverityScores.forEach(score => pm.expect(score).to.be.within(0, 1));",
+                      "});",
+                      "pm.test('Expected accepted evidence pairs in stable order', () => {",
+                      "  pm.expect(strataResult.conflictingSourcePairs).to.eql([['agent-a', 'agent-b'], ['agent-b', 'agent-c']]);",
+                      "  pm.expect(strataResult.conflictSeverityScores).to.eql([0.8, 0.8]);",
+                      "  pm.expect(strataResult.conflictingClaims).to.eql([['APPROVE', 'REJECT'], ['REJECT', 'approve']]);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Upper boundary one",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{fixtureBaseUrl}}/analyses/m4-conflicts/conflicts?conflictThreshold=1"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "const strataResult = pm.response.json();",
+                      "pm.test('Report contains three aligned arrays', () => {",
+                      "  pm.expect(strataResult).to.have.all.keys('conflictingSourcePairs', 'conflictSeverityScores', 'conflictingClaims');",
+                      "  pm.expect(strataResult.conflictingSourcePairs).to.be.an('array');",
+                      "  pm.expect(strataResult.conflictSeverityScores).to.be.an('array');",
+                      "  pm.expect(strataResult.conflictingClaims).to.be.an('array');",
+                      "  pm.expect(strataResult.conflictSeverityScores.length).to.equal(strataResult.conflictingSourcePairs.length);",
+                      "  pm.expect(strataResult.conflictingClaims.length).to.equal(strataResult.conflictingSourcePairs.length);",
+                      "  strataResult.conflictingSourcePairs.forEach(pair => pm.expect(pair).to.have.lengthOf(2));",
+                      "  strataResult.conflictingClaims.forEach(pair => pm.expect(pair).to.have.lengthOf(2));",
+                      "  strataResult.conflictSeverityScores.forEach(score => pm.expect(score).to.be.within(0, 1));",
+                      "});",
+                      "pm.test('No conflicts', () => {",
+                      "  pm.expect(strataResult.conflictingSourcePairs).to.eql([]);",
+                      "  pm.expect(strataResult.conflictSeverityScores).to.eql([]);",
+                      "  pm.expect(strataResult.conflictingClaims).to.eql([]);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Compatible claims in READY analysis",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{fixtureBaseUrl}}/analyses/m4-compatible/conflicts?conflictThreshold=0"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "const strataResult = pm.response.json();",
+                      "pm.test('Report contains three aligned arrays', () => {",
+                      "  pm.expect(strataResult).to.have.all.keys('conflictingSourcePairs', 'conflictSeverityScores', 'conflictingClaims');",
+                      "  pm.expect(strataResult.conflictingSourcePairs).to.be.an('array');",
+                      "  pm.expect(strataResult.conflictSeverityScores).to.be.an('array');",
+                      "  pm.expect(strataResult.conflictingClaims).to.be.an('array');",
+                      "  pm.expect(strataResult.conflictSeverityScores.length).to.equal(strataResult.conflictingSourcePairs.length);",
+                      "  pm.expect(strataResult.conflictingClaims.length).to.equal(strataResult.conflictingSourcePairs.length);",
+                      "  strataResult.conflictingSourcePairs.forEach(pair => pm.expect(pair).to.have.lengthOf(2));",
+                      "  strataResult.conflictingClaims.forEach(pair => pm.expect(pair).to.have.lengthOf(2));",
+                      "  strataResult.conflictSeverityScores.forEach(score => pm.expect(score).to.be.within(0, 1));",
+                      "});",
+                      "pm.test('No conflicts', () => {",
+                      "  pm.expect(strataResult.conflictingSourcePairs).to.eql([]);",
+                      "  pm.expect(strataResult.conflictSeverityScores).to.eql([]);",
+                      "  pm.expect(strataResult.conflictingClaims).to.eql([]);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "FINALIZED analysis remains readable",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{fixtureBaseUrl}}/analyses/m4-finalized/conflicts?conflictThreshold=1"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "const strataResult = pm.response.json();",
+                      "pm.test('Report contains three aligned arrays', () => {",
+                      "  pm.expect(strataResult).to.have.all.keys('conflictingSourcePairs', 'conflictSeverityScores', 'conflictingClaims');",
+                      "  pm.expect(strataResult.conflictingSourcePairs).to.be.an('array');",
+                      "  pm.expect(strataResult.conflictSeverityScores).to.be.an('array');",
+                      "  pm.expect(strataResult.conflictingClaims).to.be.an('array');",
+                      "  pm.expect(strataResult.conflictSeverityScores.length).to.equal(strataResult.conflictingSourcePairs.length);",
+                      "  pm.expect(strataResult.conflictingClaims.length).to.equal(strataResult.conflictingSourcePairs.length);",
+                      "  strataResult.conflictingSourcePairs.forEach(pair => pm.expect(pair).to.have.lengthOf(2));",
+                      "  strataResult.conflictingClaims.forEach(pair => pm.expect(pair).to.have.lengthOf(2));",
+                      "  strataResult.conflictSeverityScores.forEach(score => pm.expect(score).to.be.within(0, 1));",
+                      "});",
+                      "pm.test('One maximum severity pair', () => {",
+                      "  pm.expect(strataResult.conflictingSourcePairs).to.eql([['agent-a', 'agent-b']]);",
+                      "  pm.expect(strataResult.conflictSeverityScores).to.eql([1]);",
+                      "  pm.expect(strataResult.conflictingClaims).to.eql([['APPROVE', 'REJECT']]);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Invalid threshold: Negative",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{fixtureBaseUrl}}/analyses/m4-conflicts/conflicts?conflictThreshold=-0.1"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                      "pm.test('Structured error', () => {",
+                      "  pm.expect(pm.response.json().status).to.equal(400);",
+                      "  pm.expect(pm.response.json().detail).to.equal(\"conflictThreshold must be a finite number in [0, 1]\");",
+                      "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Invalid threshold: Above one",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{fixtureBaseUrl}}/analyses/m4-conflicts/conflicts?conflictThreshold=1.1"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                      "pm.test('Structured error', () => {",
+                      "  pm.expect(pm.response.json().status).to.equal(400);",
+                      "  pm.expect(pm.response.json().detail).to.equal(\"conflictThreshold must be a finite number in [0, 1]\");",
+                      "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Invalid threshold: NaN",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{fixtureBaseUrl}}/analyses/m4-conflicts/conflicts?conflictThreshold=NaN"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                      "pm.test('Structured error', () => {",
+                      "  pm.expect(pm.response.json().status).to.equal(400);",
+                      "  pm.expect(pm.response.json().detail).to.equal(\"conflictThreshold must be a finite number in [0, 1]\");",
+                      "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Invalid threshold: Positive infinity",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{fixtureBaseUrl}}/analyses/m4-conflicts/conflicts?conflictThreshold=Infinity"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                      "pm.test('Structured error', () => {",
+                      "  pm.expect(pm.response.json().status).to.equal(400);",
+                      "  pm.expect(pm.response.json().detail).to.equal(\"conflictThreshold must be a finite number in [0, 1]\");",
+                      "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Invalid threshold: Negative infinity",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{fixtureBaseUrl}}/analyses/m4-conflicts/conflicts?conflictThreshold=-Infinity"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                      "pm.test('Structured error', () => {",
+                      "  pm.expect(pm.response.json().status).to.equal(400);",
+                      "  pm.expect(pm.response.json().detail).to.equal(\"conflictThreshold must be a finite number in [0, 1]\");",
+                      "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Invalid threshold: Not numeric",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{fixtureBaseUrl}}/analyses/m4-conflicts/conflicts?conflictThreshold=invalid"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                      "pm.test('Structured error', () => {",
+                      "  pm.expect(pm.response.json().status).to.equal(400);",
+                      "  pm.expect(pm.response.json().detail).to.equal(\"conflictThreshold must be a finite number in [0, 1]\");",
+                      "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Invalid threshold: Empty",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{fixtureBaseUrl}}/analyses/m4-conflicts/conflicts?conflictThreshold="
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                      "pm.test('Structured error', () => {",
+                      "  pm.expect(pm.response.json().status).to.equal(400);",
+                      "  pm.expect(pm.response.json().detail).to.equal(\"conflictThreshold must be a finite number in [0, 1]\");",
+                      "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Invalid threshold: Whitespace",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{fixtureBaseUrl}}/analyses/m4-conflicts/conflicts?conflictThreshold=%20"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                      "pm.test('Structured error', () => {",
+                      "  pm.expect(pm.response.json().status).to.equal(400);",
+                      "  pm.expect(pm.response.json().detail).to.equal(\"conflictThreshold must be a finite number in [0, 1]\");",
+                      "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Missing analysis",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{fixtureBaseUrl}}/analyses/m4-missing/conflicts"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+                      "pm.test('Structured error', () => {",
+                      "  pm.expect(pm.response.json().status).to.equal(404);",
+                      "  pm.expect(pm.response.json().detail).to.equal(\"Analysis does not exist\");",
+                      "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "No evidence",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{fixtureBaseUrl}}/analyses/m4-empty/conflicts"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+                      "pm.test('Structured error', () => {",
+                      "  pm.expect(pm.response.json().status).to.equal(409);",
+                      "  pm.expect(pm.response.json().detail).to.equal(\"At least two accepted evidence records are required\");",
+                      "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "One accepted plus one rejected",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{fixtureBaseUrl}}/analyses/m4-single/conflicts"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+                      "pm.test('Structured error', () => {",
+                      "  pm.expect(pm.response.json().status).to.equal(409);",
+                      "  pm.expect(pm.response.json().detail).to.equal(\"At least two accepted evidence records are required\");",
+                      "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Repeat after successful and failed requests",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{fixtureBaseUrl}}/analyses/m4-conflicts/conflicts"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "const strataResult = pm.response.json();",
+                      "pm.test('Report contains three aligned arrays', () => {",
+                      "  pm.expect(strataResult).to.have.all.keys('conflictingSourcePairs', 'conflictSeverityScores', 'conflictingClaims');",
+                      "  pm.expect(strataResult.conflictingSourcePairs).to.be.an('array');",
+                      "  pm.expect(strataResult.conflictSeverityScores).to.be.an('array');",
+                      "  pm.expect(strataResult.conflictingClaims).to.be.an('array');",
+                      "  pm.expect(strataResult.conflictSeverityScores.length).to.equal(strataResult.conflictingSourcePairs.length);",
+                      "  pm.expect(strataResult.conflictingClaims.length).to.equal(strataResult.conflictingSourcePairs.length);",
+                      "  strataResult.conflictingSourcePairs.forEach(pair => pm.expect(pair).to.have.lengthOf(2));",
+                      "  strataResult.conflictingClaims.forEach(pair => pm.expect(pair).to.have.lengthOf(2));",
+                      "  strataResult.conflictSeverityScores.forEach(score => pm.expect(score).to.be.within(0, 1));",
+                      "});",
+                      "pm.test('Expected accepted evidence pairs in stable order', () => {",
+                      "  pm.expect(strataResult.conflictingSourcePairs).to.eql([['agent-a', 'agent-b'], ['agent-b', 'agent-c']]);",
+                      "  pm.expect(strataResult.conflictSeverityScores).to.eql([0.8, 0.8]);",
+                      "  pm.expect(strataResult.conflictingClaims).to.eql([['APPROVE', 'REJECT'], ['REJECT', 'approve']]);",
+                      "});",
+                      "pm.test('Report unchanged', () => pm.expect(strataResult).to.eql(JSON.parse(pm.collectionVariables.get('m4Baseline'))));"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 - Compute Consensus (M5)",
+      "item": [
+        {
+          "name": "Compute consensus",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/analyses/{{analysisId}}/consensus"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Success status', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                  "const strataResult = pm.response.json();",
+                  "pm.test('Consensus result', () => { pm.expect(strataResult.consensusResultId).to.be.a('string').and.not.empty; pm.expect(strataResult.consensusConfidenceScore).to.be.within(0, 1); });",
+                  "if (strataResult.consensusResultId) pm.collectionVariables.set('consensusResultId', strataResult.consensusResultId);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05 - Finalize Decision (M2)",
+      "item": [
+        {
+          "name": "Finalize decision",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses/{{analysisId}}/decision",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{runId}}-decision\",\n  \"consensusResultId\": \"{{consensusResultId}}\",\n  \"minimumConfidenceThreshold\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Success status', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                  "const strataResult = pm.response.json();",
+                  "pm.test('Finalized', () => { pm.expect(strataResult.analysisStatus).to.equal('FINALIZED'); pm.expect(strataResult.decisionId).to.be.a('string').and.not.empty; });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
