@@ -23,19 +23,19 @@ mvn spring-boot:run       # starts on http://localhost:8080
 
 ```
 src/main/java/com/strata/
-  controller/  one REST controller per operation (stubs until implemented)
+  controller/  one REST controller per operation (some are still stubs)
   service/     one service per operation, holds the business logic
   dto/         request and response bodies per operation
   model/       Analysis, Evidence, ConsensusResult, FinalDecision and status enums
   store/       InMemoryStore, the shared datastore
-  common/      IdempotencyHelper, GlobalExceptionHandler
+  common/      IdempotencyHelper, GlobalExceptionHandler, custom HTTP exceptions
 ```
 
 Config lives in `src/main/resources/application.properties`; Checkstyle config is in `pom.xml`.
 
 ## Endpoints
 
-Stubs return `501 Not Implemented` until the owning milestone lands.
+Endpoints that have not landed yet return `501 Not Implemented`.
 
 | Operation | Endpoint | Milestone |
 |---|---|---|
@@ -50,3 +50,24 @@ Stubs return `501 Not Implemented` until the owning milestone lands.
 Operations that create records take a `requestId`. Use one `IdempotencyHelper<T>` per
 operation: `getOrCreate(requestId, () -> newRecord)` returns the existing record when the same
 `requestId` is sent again.
+
+## Create Analysis and Finalize Decision (M2)
+
+`POST /analyses` takes `requestId` and `topic` (required) plus `description` and
+`minimumEvidenceCount` (optional, default 1). It returns `201 Created`, or `200 OK` with the
+original record when the same `requestId` is sent again.
+
+`POST /analyses/{analysisId}/decision` takes `requestId` and `consensusResultId` (required) plus
+`minimumConfidenceThreshold` (optional, 0 to 1; no check when omitted). The `consensusResultId`
+must equal the id of the consensus stored for that analysis. `supportingEvidenceIds` lists only
+evidence whose `acceptanceStatus` is `ACCEPTED`. A repeated `requestId` returns the original
+decision.
+
+Errors are returned as `{"error": "<message>"}`:
+
+| Status | Cause |
+|---|---|
+| 400 | Missing or invalid field (`requestId`, `topic`, `consensusResultId`, negative `minimumEvidenceCount`, threshold outside 0 to 1) |
+| 404 | Analysis does not exist |
+| 409 | Analysis is already `FINALIZED` |
+| 422 | No consensus for the analysis, `consensusResultId` mismatch, or confidence below the threshold |

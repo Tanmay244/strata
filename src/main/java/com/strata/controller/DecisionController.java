@@ -21,7 +21,7 @@ public class DecisionController {
     this.service = service;
   }
 
-  /** Finalize Decision. TODO(M2): implement. */
+  /** Finalize Decision. */
   @PostMapping("/{analysisId}/decision")
   public ResponseEntity<FinalizeDecisionResponse> finalizeDecision(
       @PathVariable String analysisId,

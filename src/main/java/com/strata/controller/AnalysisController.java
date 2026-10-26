@@ -3,6 +3,7 @@ package com.strata.controller;
 import com.strata.dto.CreateAnalysisRequest;
 import com.strata.dto.CreateAnalysisResponse;
 import com.strata.service.AnalysisService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -20,10 +21,12 @@ public class AnalysisController {
     this.service = service;
   }
 
-  /** Create Analysis. TODO(M2): implement. */
+  /** Create Analysis. Answers 201 when created and 200 when a repeated requestId is replayed. */
   @PostMapping
   public ResponseEntity<CreateAnalysisResponse> createAnalysis(
       @RequestBody CreateAnalysisRequest request) {
-    return ResponseEntity.ok(service.createAnalysis(request));
+    CreateAnalysisResponse response = service.createAnalysis(request);
+    HttpStatus status = response.isReplayed() ? HttpStatus.OK : HttpStatus.CREATED;
+    return ResponseEntity.status(status).body(response);
   }
 }
