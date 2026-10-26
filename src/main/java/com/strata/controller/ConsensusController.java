@@ -19,7 +19,7 @@ public class ConsensusController {
     this.service = service;
   }
 
-  /** Compute Consensus. TODO(M5): implement. */
+  /** Computes consensus for the evidence submitted to an analysis. */
   @PostMapping("/{analysisId}/consensus")
   public ResponseEntity<ComputeConsensusResponse> computeConsensus(
       @PathVariable String analysisId) {
