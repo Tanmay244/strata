@@ -129,10 +129,8 @@ is excluded from the production JAR.
 
 Run `mvn verify` for Checkstyle, Mockito service tests, Spring MockMvc API tests, and the
 existing skeleton tests. M4 tests cover scoring, thresholds, rejected/same-source evidence,
-missing analyses, insufficient evidence, response ordering, repeatability, and no mutation.
+missing analyses, insufficient evidence, response ordering, repeatability and no mutation.
 
 ## M4 AI assistance disclosure
 
-OpenAI Codex generated the M4 implementation, tests, Postman assets, and associated
-documentation in response to the request to implement Issue 4 using the supplied proposal
-and milestone requirements. See [M4 AI notes](docs/M4-AI-NOTES.md) for scope and prompt notes.
+OpenAI Codex was used to help the M4 implementation. See [M4 AI notes](docs/M4-AI-NOTES.md) for scope and prompt notes.
