@@ -73,6 +73,71 @@ class ConsensusServiceTest {
     assertEquals(404, exception.getStatusCode().value());
   }
 
+  @Test
+  void returnsExistingConsensusForRepeatedRequest() {
+    InMemoryStore store = new InMemoryStore();
+    Analysis analysis = analysis("ana-1", 1);
+    store.saveAnalysis(analysis);
+    store.saveEvidence(evidence("ev-1", "ana-1", "Approve", 1.0, AcceptanceStatus.ACCEPTED));
+
+    ConsensusService service = new ConsensusService(store);
+    ComputeConsensusResponse first = service.computeConsensus("ana-1");
+    ComputeConsensusResponse second = service.computeConsensus("ana-1");
+
+    assertEquals(first.getConsensusResultId(), second.getConsensusResultId());
+    assertEquals(1, store.findConsensusByAnalysis("ana-1").stream().count());
+  }
+
+  @Test
+  void rejectsFinalizedAnalysisWithoutConsensus() {
+    InMemoryStore store = new InMemoryStore();
+    Analysis analysis = analysis("ana-1", 1);
+    analysis.setStatus(AnalysisStatus.FINALIZED);
+    store.saveAnalysis(analysis);
+
+    ResponseStatusException exception = assertThrows(
+        ResponseStatusException.class,
+        () -> new ConsensusService(store).computeConsensus("ana-1"));
+
+    assertEquals(409, exception.getStatusCode().value());
+  }
+
+  @Test
+  void rejectsOutOfRangeConfidenceAndBlankClaim() {
+    InMemoryStore store = new InMemoryStore();
+    Analysis analysis = analysis("ana-1", 1);
+    store.saveAnalysis(analysis);
+    store.saveEvidence(evidence("ev-1", "ana-1", " ", 1.1, AcceptanceStatus.ACCEPTED));
+
+    ResponseStatusException exception = assertThrows(
+        ResponseStatusException.class,
+        () -> new ConsensusService(store).computeConsensus("ana-1"));
+
+    assertEquals(409, exception.getStatusCode().value());
+  }
+
+  @Test
+  void rejectsMissingEvidenceId() {
+    InMemoryStore store = new InMemoryStore();
+    store.saveAnalysis(analysis("ana-1", 1));
+    store.saveEvidence(evidence("", "ana-1", "Approve", 1.0, AcceptanceStatus.ACCEPTED));
+
+    ResponseStatusException exception = assertThrows(
+        ResponseStatusException.class,
+        () -> new ConsensusService(store).computeConsensus("ana-1"));
+
+    assertEquals(409, exception.getStatusCode().value());
+  }
+
+  @Test
+  void rejectsBlankAnalysisId() {
+    ResponseStatusException exception = assertThrows(
+        ResponseStatusException.class,
+        () -> new ConsensusService(new InMemoryStore()).computeConsensus(" "));
+
+    assertEquals(400, exception.getStatusCode().value());
+  }
+
   private static Analysis analysis(String id, int minimumEvidenceCount) {
     Analysis analysis = new Analysis();
     analysis.setAnalysisId(id);
