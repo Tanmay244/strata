@@ -48,6 +48,31 @@ class ConsensusServiceTest {
     assertEquals(AnalysisStatus.OPEN, store.findAnalysis("ana-1").orElseThrow().getStatus());
   }
 
+  @Test
+  void rejectsInvalidAcceptedEvidenceWithoutChangingAnalysis() {
+    InMemoryStore store = new InMemoryStore();
+    Analysis analysis = analysis("ana-1", 1);
+    store.saveAnalysis(analysis);
+    store.saveEvidence(evidence("ev-1", "ana-1", "Approve", Double.NaN, AcceptanceStatus.ACCEPTED));
+
+    ResponseStatusException exception = assertThrows(
+        ResponseStatusException.class,
+        () -> new ConsensusService(store).computeConsensus("ana-1"));
+
+    assertEquals(409, exception.getStatusCode().value());
+    assertEquals(AnalysisStatus.OPEN, analysis.getStatus());
+    assertEquals(0, store.findConsensusByAnalysis("ana-1").stream().count());
+  }
+
+  @Test
+  void rejectsUnknownAnalysis() {
+    ResponseStatusException exception = assertThrows(
+        ResponseStatusException.class,
+        () -> new ConsensusService(new InMemoryStore()).computeConsensus("missing"));
+
+    assertEquals(404, exception.getStatusCode().value());
+  }
+
   private static Analysis analysis(String id, int minimumEvidenceCount) {
     Analysis analysis = new Analysis();
     analysis.setAnalysisId(id);

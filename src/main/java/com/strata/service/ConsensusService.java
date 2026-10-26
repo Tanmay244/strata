@@ -29,62 +29,100 @@ public class ConsensusService {
 
   /** Computes and stores the highest-confidence compatible claim. */
   public ComputeConsensusResponse computeConsensus(String analysisId) {
+    requireAnalysisId(analysisId);
+    Analysis analysis = findAnalysis(analysisId);
+    List<Evidence> acceptedEvidence = findAcceptedEvidence(analysisId);
+    validateEvidenceCount(acceptedEvidence, analysis.getMinimumEvidenceCount());
+    ConsensusSelection selection = selectConsensus(acceptedEvidence);
+    ConsensusResult result = saveConsensus(analysisId, selection);
+    markReady(analysis, result);
+    return toResponse(result);
+  }
+
+  private static void requireAnalysisId(String analysisId) {
     if (analysisId == null || analysisId.isBlank()) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "analysisId is required");
     }
+  }
 
-    Analysis analysis = store.findAnalysis(analysisId)
+  private Analysis findAnalysis(String analysisId) {
+    return store.findAnalysis(analysisId)
         .orElseThrow(() -> new ResponseStatusException(
             HttpStatus.NOT_FOUND, "Analysis does not exist"));
+  }
 
-    List<Evidence> acceptedEvidence = store.findEvidenceByAnalysis(analysisId).stream()
+  private List<Evidence> findAcceptedEvidence(String analysisId) {
+    return store.findEvidenceByAnalysis(analysisId).stream()
         .filter(item -> item.getAcceptanceStatus() == AcceptanceStatus.ACCEPTED)
         .sorted(Comparator.comparing(Evidence::getEvidenceId))
         .toList();
-    if (acceptedEvidence.size() < analysis.getMinimumEvidenceCount()) {
-      throw new ResponseStatusException(
-          HttpStatus.CONFLICT,
-          "Minimum evidence count has not been met");
-    }
-    if (acceptedEvidence.isEmpty()) {
-      throw new ResponseStatusException(
-          HttpStatus.CONFLICT, "At least one accepted evidence record is required");
-    }
+  }
 
-    double totalWeight = acceptedEvidence.stream()
-        .mapToDouble(Evidence::getNormalizedConfidenceScore)
-        .sum();
+  private static void validateEvidenceCount(List<Evidence> evidence, int minimumEvidenceCount) {
+    if (minimumEvidenceCount < 1) {
+      throw new ResponseStatusException(
+          HttpStatus.CONFLICT, "Analysis minimum evidence count must be positive");
+    }
+    if (evidence.size() < minimumEvidenceCount) {
+      throw new ResponseStatusException(
+          HttpStatus.CONFLICT, "Minimum evidence count has not been met");
+    }
+  }
+
+  private static ConsensusSelection selectConsensus(List<Evidence> evidence) {
+    Map<String, ClaimGroup> groups = new LinkedHashMap<>();
+    double totalWeight = 0;
+    for (Evidence item : evidence) {
+      validateEvidence(item);
+      double confidence = item.getNormalizedConfidenceScore();
+      totalWeight += confidence;
+      ClaimGroup group = groups.computeIfAbsent(
+          normalize(item.getClaim()), key -> new ClaimGroup(item.getClaim()));
+      group.add(confidence);
+    }
     if (totalWeight <= 0) {
       throw new ResponseStatusException(
           HttpStatus.CONFLICT, "Accepted evidence must have positive confidence");
     }
 
-    Map<String, ClaimGroup> groups = new LinkedHashMap<>();
-    for (Evidence evidence : acceptedEvidence) {
-      String normalizedClaim = normalize(evidence.getClaim());
-      ClaimGroup group = groups.computeIfAbsent(
-          normalizedClaim, key -> new ClaimGroup(evidence.getClaim()));
-      group.add(evidence.getNormalizedConfidenceScore());
-    }
-
-    ClaimGroup winningGroup = groups.values().stream()
+    ClaimGroup winner = groups.values().stream()
         .max(Comparator.comparingDouble(ClaimGroup::weight)
             .thenComparing(ClaimGroup::claim, Comparator.reverseOrder()))
         .orElseThrow();
-    double normalizedScore = winningGroup.weight() / totalWeight;
+    return new ConsensusSelection(winner.claim(), winner.weight() / totalWeight, evidence.size());
+  }
 
+  private static void validateEvidence(Evidence evidence) {
+    if (evidence.getEvidenceId() == null || evidence.getEvidenceId().isBlank()) {
+      throw new ResponseStatusException(HttpStatus.CONFLICT, "Accepted evidence has no id");
+    }
+    if (evidence.getClaim() == null || evidence.getClaim().isBlank()) {
+      throw new ResponseStatusException(HttpStatus.CONFLICT, "Accepted evidence has no claim");
+    }
+    double confidence = evidence.getNormalizedConfidenceScore();
+    if (!Double.isFinite(confidence) || confidence < 0 || confidence > 1) {
+      throw new ResponseStatusException(
+          HttpStatus.CONFLICT, "Accepted evidence has an invalid confidence score");
+    }
+  }
+
+  private ConsensusResult saveConsensus(String analysisId, ConsensusSelection selection) {
     ConsensusResult result = new ConsensusResult();
     result.setConsensusResultId(store.newId("con"));
     result.setAnalysisId(analysisId);
-    result.setConsensusClaim(winningGroup.claim());
-    result.setConsensusConfidenceScore(normalizedScore);
-    result.setEvidenceCount(acceptedEvidence.size());
+    result.setConsensusClaim(selection.claim());
+    result.setConsensusConfidenceScore(selection.confidence());
+    result.setEvidenceCount(selection.evidenceCount());
     result.setCreatedAt(Instant.now());
-    store.saveConsensus(result);
+    return store.saveConsensus(result);
+  }
 
+  private void markReady(Analysis analysis, ConsensusResult result) {
     analysis.setStatus(AnalysisStatus.READY);
     store.saveAnalysis(analysis);
+  }
 
+  private static ComputeConsensusResponse toResponse(ConsensusResult result) {
     return new ComputeConsensusResponse(
         result.getConsensusResultId(),
         result.getConsensusClaim(),
@@ -93,10 +131,10 @@ public class ConsensusService {
   }
 
   private static String normalize(String claim) {
-    return claim == null
-        ? ""
-        : claim.strip().replaceAll("(?U)\\s+", " ").toLowerCase(Locale.ROOT);
+    return claim.strip().replaceAll("(?U)\\s+", " ").toLowerCase(Locale.ROOT);
   }
+
+  private record ConsensusSelection(String claim, double confidence, int evidenceCount) {}
 
   private static final class ClaimGroup {
 
