@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** HTTP endpoint for Submit Evidence. */
+/** HTTP endpoint for Submit Evidence. AI-assisted implementation. */
 @RestController
 @RequestMapping("/analyses")
 public class EvidenceController {
@@ -21,7 +21,7 @@ public class EvidenceController {
     this.service = service;
   }
 
-  /** Submit Evidence. TODO(M3): implement. */
+  /** Submits evidence or returns its original receipt on retry. */
   @PostMapping("/{analysisId}/evidence")
   public ResponseEntity<SubmitEvidenceResponse> submitEvidence(
       @PathVariable String analysisId,
