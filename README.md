@@ -47,8 +47,8 @@ The service stores data and idempotency receipts in memory; restarting clears bo
 
 ## Endpoints
 
-M2 (Create Analysis, Finalize Decision), M3 (Submit Evidence), and M4 (Detect Conflicts) are implemented.
-Other stubs return `501 Not Implemented` until their owning milestone lands.
+All five operations are implemented: M2 (Create Analysis, Finalize Decision), M3 (Submit Evidence),
+M4 (Detect Conflicts), and M5 (Compute Consensus).
 
 | Operation | Endpoint | Milestone |
 |---|---|---|
@@ -70,11 +70,58 @@ operation: `getOrCreate(requestId, () -> newRecord)` returns the existing record
 `minimumEvidenceCount` (optional, default 1). It returns `201 Created`, or `200 OK` with the
 original record when the same `requestId` is sent again.
 
+```bash
+# Good: create a new analysis
+curl -s -X POST http://localhost:8080/analyses \
+  -H "Content-Type: application/json" \
+  -d '{"requestId":"req-1","topic":"Should we deploy v2.0?","minimumEvidenceCount":2}'
+# → 201 {"analysisId":"ana-1","status":"OPEN","createdAt":"...","minimumEvidenceCount":2}
+
+# Good: retry with same requestId → returns original (200, not 201)
+curl -s -X POST http://localhost:8080/analyses \
+  -H "Content-Type: application/json" \
+  -d '{"requestId":"req-1","topic":"Should we deploy v2.0?","minimumEvidenceCount":2}'
+# → 200 (same body)
+
+# Bad: missing topic → 400
+curl -s -X POST http://localhost:8080/analyses \
+  -H "Content-Type: application/json" \
+  -d '{"requestId":"req-2"}'
+
+# Bad: negative minimumEvidenceCount → 400
+curl -s -X POST http://localhost:8080/analyses \
+  -H "Content-Type: application/json" \
+  -d '{"requestId":"req-3","topic":"test","minimumEvidenceCount":-1}'
+```
+
 `POST /analyses/{analysisId}/decision` takes `requestId` and `consensusResultId` (required) plus
 `minimumConfidenceThreshold` (optional, 0 to 1; no check when omitted). The `consensusResultId`
 must equal the id of the consensus stored for that analysis. `supportingEvidenceIds` lists only
 evidence whose `acceptanceStatus` is `ACCEPTED`. A repeated `requestId` returns the original
 decision.
+
+```bash
+# Good: finalize after consensus computed (replace IDs with real ones)
+curl -s -X POST http://localhost:8080/analyses/ana-1/decision \
+  -H "Content-Type: application/json" \
+  -d '{"requestId":"dec-1","consensusResultId":"con-1","minimumConfidenceThreshold":0.5}'
+# → 200 {"decisionId":"...","finalDecision":"APPROVE","confidenceScore":0.8,...}
+
+# Bad: unknown analysisId → 404
+curl -s -X POST http://localhost:8080/analyses/does-not-exist/decision \
+  -H "Content-Type: application/json" \
+  -d '{"requestId":"dec-2","consensusResultId":"con-1"}'
+
+# Bad: wrong consensusResultId → 422
+curl -s -X POST http://localhost:8080/analyses/ana-1/decision \
+  -H "Content-Type: application/json" \
+  -d '{"requestId":"dec-3","consensusResultId":"wrong-id"}'
+
+# Bad: confidence below threshold → 422
+curl -s -X POST http://localhost:8080/analyses/ana-1/decision \
+  -H "Content-Type: application/json" \
+  -d '{"requestId":"dec-4","consensusResultId":"con-1","minimumConfidenceThreshold":0.99}'
+```
 
 Errors are returned as `{"error": "<message>"}`:
 
@@ -142,7 +189,7 @@ Good usage: create an analysis with M2, submit evidence from independent sources
 `OPEN`, then compute consensus. Retry network failures with the same request ID and body.
 Bad usage: submit to an unknown analysis (`404`), send confidence `1.5` (`400`), send new evidence
 after consensus makes the analysis `READY` (`409`), or disguise a duplicate with a new ID (`409`).
-M2 is currently a stub on this branch; use the test fixtures below to exercise M3 independently.
+Use the test fixtures below to exercise M3 in isolation, or run the full service with M2 to create real analyses.
 
 ## M3 API tests (Postman / Newman)
 
@@ -171,7 +218,7 @@ npm exec --yes --package=newman@6.2.1 -- newman run postman/m3-submit-evidence.p
 Collection variables default to `baseUrl=http://localhost:8080` and the fixture analysis IDs.
 For another port, append `--env-var baseUrl=http://localhost:8081` to the Newman command and
 start the launcher with `-Dspring-boot.run.arguments=--server.port=8081`.
-After M2 is implemented, the same collection can use real analysis IDs via collection/environment
+With M2 implemented, the same collection can use real analysis IDs via collection/environment
 variables `analysisId`, `readyAnalysisId`, and `finalizedAnalysisId`; provision those lifecycle states
 before running. The collection itself does not create or close analyses.
 
@@ -264,3 +311,84 @@ The controller test mocks the service; Postman separately exercises the live end
 ## M4 AI assistance disclosure
 
 OpenAI Codex was used to help the M4 implementation. See [M4 AI notes](docs/M4-AI-NOTES.md) for scope and prompt notes.
+
+## Compute Consensus (M5)
+
+`POST /analyses/{analysisId}/consensus` groups all accepted evidence by normalized claim,
+weights each group by the sum of its `confidenceScore` values, and selects the claim with
+the highest normalized weight. The analysis status advances from `OPEN` to `READY` and a
+`ConsensusResult` record is stored. Re-calling the endpoint when a result already exists
+returns the stored result without recomputing.
+
+```bash
+# Good: compute consensus after at least minimumEvidenceCount evidence items submitted
+curl -s -X POST http://localhost:8080/analyses/ana-1/consensus
+# → 200 {"consensusResultId":"con-1","consensusClaim":"APPROVE",
+#         "consensusConfidenceScore":0.72,"evidenceCount":3}
+
+# Good: idempotent — calling again returns the same result
+curl -s -X POST http://localhost:8080/analyses/ana-1/consensus
+# → 200 (same body)
+
+# Bad: analysis does not exist → 404
+curl -s -X POST http://localhost:8080/analyses/unknown/consensus
+
+# Bad: not enough evidence yet (below minimumEvidenceCount) → 409
+curl -s -X POST http://localhost:8080/analyses/ana-empty/consensus
+
+# Bad: analysis already FINALIZED → 409
+curl -s -X POST http://localhost:8080/analyses/ana-done/consensus
+```
+
+| Status | Cause |
+|---|---|
+| 200 | Consensus computed (or existing result returned) |
+| 404 | Analysis does not exist |
+| 409 | Fewer than `minimumEvidenceCount` accepted evidence records, or analysis is already `FINALIZED`, or evidence has invalid data |
+
+M5 AI assistance notes: [docs/m5-ai-usage.md](docs/m5-ai-usage.md).
+
+## Third-party libraries and tools
+
+All application and test dependencies are fetched by Maven from Maven Central; no source is
+copied into this repository.
+
+| Library | Version (via Spring Boot BOM) | Use |
+|---|---|---|
+| Spring Boot | 3.3.5 | Web framework, dependency injection, test context |
+| Spring Web MVC | (BOM) | REST controllers, `ResponseStatusException` |
+| Spring Validation | (BOM) | Bean validation support |
+| Jackson Databind | (BOM) | JSON serialization / deserialization |
+| JUnit 5 | (BOM) | Unit and integration test runner |
+| Mockito | (BOM) | Test doubles (mocks) for service-layer tests |
+| Checkstyle | 10.17.0 | Style enforcement (Google Java Style) |
+| JaCoCo | 0.8.12 | Branch coverage reporting |
+| Newman | 6.2.1 (npm, optional) | CLI runner for Postman API tests |
+
+No third-party source code was copied into this repository.
+
+## AI documentation
+
+The team used AI coding assistants across all milestones. All AI-generated or AI-debugged
+code is marked with inline comments (`// AI-generated`) or commit co-author tags
+(`Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>` or
+`Co-authored-by: Cursor <cursoragent@cursor.com>`).
+
+| Milestone | Tool | Notes |
+|---|---|---|
+| M1 | Cursor / Claude Sonnet 5.5 | Skeleton, models, store, idempotency helper — see commit co-author tags |
+| M2 | Cursor / Claude Sonnet 5.5 | Create Analysis, Finalize Decision, exception hierarchy — see [docs/m2-ai-usage.md](docs/m2-ai-usage.md) |
+| M3 | OpenAI Codex | Submit Evidence, Postman collection — see [docs/m3-ai-usage.md](docs/m3-ai-usage.md) |
+| M4 | OpenAI Codex | Detect Conflicts, Postman collection — see [docs/M4-AI-NOTES.md](docs/M4-AI-NOTES.md) |
+| M5 | Cursor / Claude Sonnet 5.5 | Compute Consensus — see [docs/m5-ai-usage.md](docs/m5-ai-usage.md) |
+
+Token counts per tool session are recorded in the per-milestone notes files where available.
+
+## Project management
+
+Tasks are tracked as GitHub Issues. Each milestone has a corresponding issue that is closed
+when the PR merges:
+[GitHub Issues — Strata](https://github.com/Tanmay244/strata/issues)
+
+All configuration files needed to build, run, and test the service are in this repository.
+No external accounts or credentials are required beyond Java 17 and Maven 3.9+.
