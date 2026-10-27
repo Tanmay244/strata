@@ -369,14 +369,14 @@ No third-party source code was copied into this repository.
 
 ## AI documentation
 
-The team used AI coding assistants across all milestones. All AI-generated or AI-debugged
-code is marked with inline comments (`// AI-generated`) or commit co-author tags
-(`Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>` or
-`Co-authored-by: Cursor <cursoragent@cursor.com>`).
+The team used AI coding assistants across all milestones. Per-milestone records document
+the tool, purpose, prompts, and token counts where available.
+M3 source files carry inline `// AI-generated` comments. Other milestones are attributed
+via commit `Co-Authored-By` tags (M1, M2) or per-milestone notes files.
 
 | Milestone | Tool | Notes |
 |---|---|---|
-| M1 | Cursor / Claude Sonnet 5.5 | Skeleton, models, store, idempotency helper — see commit co-author tags |
+| M1 | Cursor / Claude Sonnet 5.5 | Skeleton, models, store, idempotency helper — see [docs/m1-ai-usage.md](docs/m1-ai-usage.md) and commit co-author tags |
 | M2 | Cursor / Claude Sonnet 5.5 | Create Analysis, Finalize Decision, exception hierarchy — see [docs/m2-ai-usage.md](docs/m2-ai-usage.md) |
 | M3 | OpenAI Codex | Submit Evidence, Postman collection — see [docs/m3-ai-usage.md](docs/m3-ai-usage.md) |
 | M4 | OpenAI Codex | Detect Conflicts, Postman collection — see [docs/M4-AI-NOTES.md](docs/M4-AI-NOTES.md) |

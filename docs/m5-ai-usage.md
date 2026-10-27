@@ -1,8 +1,9 @@
 # M5 AI assistance record
 
 - **Tool:** Cursor IDE with Claude Sonnet 5.5 (Anthropic), used on 2026-10-26.
-- **Commit co-author tag:** `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`
-  (visible in M5 commits by `devbahl12` on `feature/m5`).
+- **Author:** Dev Bahl (`devbahl12@gmail.com`).
+- **Note:** M5 commits do not carry a `Co-Authored-By` tag; AI use is documented here
+  and in the README AI section.
 - **User instruction:** Implement Issue #5 — M5 Compute Consensus
   (`POST /analyses/{analysisId}/consensus`), including response DTO, service logic
   (weighted claim grouping, normalization, idempotent re-call), and unit tests.
