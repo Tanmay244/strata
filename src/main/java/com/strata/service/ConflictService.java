@@ -18,6 +18,8 @@ import org.springframework.web.server.ResponseStatusException;
  * M3 owns input validation: accepted records must have identifiers, a claim, and normalized
  * confidence in [0, 1]. Different normalized claims are treated as alternative categories;
  * this rule does not infer whether arbitrary natural-language sentences contradict one another.
+ *
+ * <p>AI-assisted; see docs/M4-AI-NOTES.md.
  */
 @Service
 public class ConflictService {

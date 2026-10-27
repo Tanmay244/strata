@@ -16,18 +16,24 @@ Requires Java 17 and Maven 3.9+. Confirm `java -version` and `mvn -version` use 
 On macOS, select it with `export JAVA_HOME=$(/usr/libexec/java_home -v 17)`.
 
 ```bash
-mvn clean verify          # style check + compile + tests
+mvn clean verify          # style check + compile + tests + coverage check
 mvn spring-boot:run       # starts on http://localhost:8080
 mvn test                 # all JUnit tests
 mvn -Dtest=EvidenceServiceTest,EvidenceControllerTest test  # M3 tests only
 java -jar target/strata-0.0.1-SNAPSHOT.jar  # after clean verify
 ```
 
+After `mvn clean verify`:
+- **JaCoCo branch coverage report:** `target/site/jacoco/index.html`
+  (current: **84.8% branch**, 134/158 branches — minimum enforced is 55%)
+- **Checkstyle report:** `target/checkstyle-result.xml`
+  (build fails on any violation; must be clean to proceed)
+
 ## Project layout
 
 ```
 src/main/java/com/strata/
-  controller/  one REST controller per operation (some are still stubs)
+  controller/  one REST controller per operation
   service/     one service per operation, holds the business logic
   dto/         request and response bodies per operation
   model/       Analysis, Evidence, ConsensusResult, FinalDecision and status enums
@@ -63,6 +69,65 @@ M4 (Detect Conflicts), and M5 (Compute Consensus).
 Operations that create records take a `requestId`. Use one `IdempotencyHelper<T>` per
 operation: `getOrCreate(requestId, () -> newRecord)` returns the existing record when the same
 `requestId` is sent again.
+
+## End-to-end usage walkthrough
+
+Operations must be called in this order for a complete run. Start the service with
+`mvn spring-boot:run`, then execute the steps below in sequence.
+
+**Step 1 — Create an analysis**
+```bash
+curl -s -X POST http://localhost:8080/analyses \
+  -H "Content-Type: application/json" \
+  -d '{"requestId":"demo-1","topic":"Deploy v2.0?","minimumEvidenceCount":2}'
+# → 201 {"analysisId":"<AID>","status":"OPEN",...}
+```
+Save `<AID>` for the following steps.
+
+**Step 2 — Submit evidence (repeat for each source)**
+```bash
+curl -s -X POST http://localhost:8080/analyses/<AID>/evidence \
+  -H "Content-Type: application/json" \
+  -d '{"requestId":"ev-1","sourceId":"agent-a","claim":"APPROVE","confidenceScore":0.9,"evidenceType":"review"}'
+
+curl -s -X POST http://localhost:8080/analyses/<AID>/evidence \
+  -H "Content-Type: application/json" \
+  -d '{"requestId":"ev-2","sourceId":"agent-b","claim":"APPROVE","confidenceScore":0.7,"evidenceType":"review"}'
+```
+Both return `200` with `acceptanceStatus: "ACCEPTED"`. Submit at least `minimumEvidenceCount` items before the next step.
+
+**Step 3 — Detect conflicts (optional read)**
+```bash
+curl -s "http://localhost:8080/analyses/<AID>/conflicts?conflictThreshold=0.5"
+# → 200 {"conflictingSourcePairs":[],...}  (no conflicts — both claim APPROVE)
+```
+This is read-only and does not change any status.
+
+**Step 4 — Compute consensus**
+```bash
+curl -s -X POST http://localhost:8080/analyses/<AID>/consensus
+# → 200 {"consensusResultId":"<CID>","consensusClaim":"APPROVE","consensusConfidenceScore":0.8,...}
+```
+Save `<CID>`. The analysis status changes to `READY`.
+
+**Step 5 — Finalize decision**
+```bash
+curl -s -X POST http://localhost:8080/analyses/<AID>/decision \
+  -H "Content-Type: application/json" \
+  -d '{"requestId":"dec-1","consensusResultId":"<CID>","minimumConfidenceThreshold":0.5}'
+# → 200 {"decisionId":"...","analysisStatus":"FINALIZED","finalDecision":"APPROVE",...}
+```
+The analysis is now `FINALIZED`. Submitting new evidence or re-computing consensus returns `409`.
+
+**Constraints summary**
+
+| Rule | Detail |
+|---|---|
+| Create before submit/detect/consensus/decide | Analysis must exist |
+| Submit only while `OPEN` | `READY` and `FINALIZED` analyses reject new evidence |
+| Consensus requires `≥ minimumEvidenceCount` accepted records | Default is 1 |
+| Decision requires a matching `consensusResultId` | Must call consensus first |
+| Decision finalizes permanently | No further evidence or consensus after `FINALIZED` |
 
 ## Create Analysis and Finalize Decision (M2)
 
@@ -302,10 +367,10 @@ See [Postman instructions](postman/README.md) for fixture startup, running tests
 merge, and the later five-operation workflow. The fixture launcher is under `src/test` and
 is excluded from the production JAR.
 
-Run `mvn verify` for Checkstyle, Mockito service tests, a Spring MockMvc HTTP contract test,
-and the existing skeleton tests. The initial-iteration Java suite has 10 tests: 2 for M4
-and 8 from the skeleton. M4 retains the default-threshold scoring path, response ordering,
-read-only store interactions, and HTTP response serialization.
+Run `mvn verify` for Checkstyle, all unit tests, and JaCoCo coverage. The suite has
+**97 tests** covering all five operations (service logic, controller HTTP contracts, store,
+idempotency helper, and exception handler). M4 retains the default-threshold scoring path,
+response ordering, read-only store interactions, and HTTP response serialization.
 The controller test mocks the service; Postman separately exercises the live endpoint.
 
 ## M4 AI assistance disclosure
@@ -350,20 +415,21 @@ M5 AI assistance notes: [docs/m5-ai-usage.md](docs/m5-ai-usage.md).
 
 ## Third-party libraries and tools
 
-All application and test dependencies are fetched by Maven from Maven Central; no source is
+All application and test dependencies are declared in `pom.xml` and fetched automatically
+by Maven from [Maven Central](https://central.sonatype.com/). No third-party source is
 copied into this repository.
 
-| Library | Version (via Spring Boot BOM) | Use |
-|---|---|---|
-| Spring Boot | 3.3.5 | Web framework, dependency injection, test context |
-| Spring Web MVC | (BOM) | REST controllers, `ResponseStatusException` |
-| Spring Validation | (BOM) | Bean validation support |
-| Jackson Databind | (BOM) | JSON serialization / deserialization |
-| JUnit 5 | (BOM) | Unit and integration test runner |
-| Mockito | (BOM) | Test doubles (mocks) for service-layer tests |
-| Checkstyle | 10.17.0 | Style enforcement (Google Java Style) |
-| JaCoCo | 0.8.12 | Branch coverage reporting |
-| Newman | 6.2.1 (npm, optional) | CLI runner for Postman API tests |
+| Library | Version | Source | Use |
+|---|---|---|---|
+| Spring Boot | 3.3.5 | [Maven Central](https://central.sonatype.com/artifact/org.springframework.boot/spring-boot) | Web framework, dependency injection, test context |
+| Spring Web MVC | (Spring Boot BOM) | Maven Central | REST controllers |
+| Spring Validation | (Spring Boot BOM) | Maven Central | Bean validation |
+| Jackson Databind | (Spring Boot BOM) | Maven Central | JSON serialization / deserialization |
+| JUnit 5 | (Spring Boot BOM) | Maven Central | Unit and integration test runner |
+| Mockito | (Spring Boot BOM) | Maven Central | Test doubles (mocks) for service-layer tests |
+| Checkstyle | 10.17.0 | [Maven Central](https://central.sonatype.com/artifact/com.puppycrawl.tools/checkstyle) | Style enforcement (Google Java Style) |
+| JaCoCo | 0.8.12 | [Maven Central](https://central.sonatype.com/artifact/org.jacoco/jacoco-maven-plugin) | Branch coverage reporting |
+| Newman | 6.2.1 (npm) | [npmjs.com](https://www.npmjs.com/package/newman) | CLI runner for Postman API tests (optional) |
 
 No third-party source code was copied into this repository.
 

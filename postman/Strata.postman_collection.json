@@ -76,6 +76,107 @@
               }
             }
           ]
+        },
+        {
+          "name": "Idempotent retry (same requestId \u2192 200)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{runId}}-analysis\",\n  \"topic\": \"Software change review\",\n  \"description\": \"Combine independent review-agent recommendations\",\n  \"minimumEvidenceCount\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Idempotent: 200 returned', () => pm.expect(pm.response.code).to.equal(200));",
+                  "const strataResult = pm.response.json();",
+                  "pm.test('Same analysisId returned', () => pm.expect(strataResult.analysisId).to.equal(pm.collectionVariables.get('analysisId')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Missing topic \u2192 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{runId}}-bad-no-topic\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400 for missing topic', () => pm.expect(pm.response.code).to.equal(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Unknown analysis for decision \u2192 404",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses/nonexistent-analysis/decision",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{runId}}-bad-decision\",\n  \"consensusResultId\": \"anything\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 for unknown analysis', () => pm.expect(pm.response.code).to.equal(404));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -811,6 +912,46 @@
               }
             }
           ]
+        },
+        {
+          "name": "Idempotent retry (same result returned)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/analyses/{{analysisId}}/consensus"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 on retry', () => pm.expect(pm.response.code).to.equal(200));",
+                  "const strataResult = pm.response.json();",
+                  "pm.test('Same consensusResultId', () => pm.expect(strataResult.consensusResultId).to.equal(pm.collectionVariables.get('consensusResultId')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Unknown analysis \u2192 404",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/analyses/nonexistent-analysis/consensus"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 for unknown analysis', () => pm.expect(pm.response.code).to.equal(404));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -847,6 +988,107 @@
                   "pm.test('Success status', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
                   "const strataResult = pm.response.json();",
                   "pm.test('Finalized', () => { pm.expect(strataResult.analysisStatus).to.equal('FINALIZED'); pm.expect(strataResult.decisionId).to.be.a('string').and.not.empty; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Idempotent retry (same requestId \u2192 200)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses/{{analysisId}}/decision",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{runId}}-decision\",\n  \"consensusResultId\": \"{{consensusResultId}}\",\n  \"minimumConfidenceThreshold\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Idempotent: 200 returned', () => pm.expect(pm.response.code).to.equal(200));",
+                  "const strataResult = pm.response.json();",
+                  "pm.test('Same decisionId returned', () => pm.expect(strataResult.decisionId).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Wrong consensusResultId \u2192 422",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses/{{analysisId}}/decision",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{runId}}-bad-decision-id\",\n  \"consensusResultId\": \"wrong-id\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('422 for wrong consensusResultId', () => pm.expect(pm.response.code).to.equal(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Missing requestId \u2192 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/analyses/{{analysisId}}/decision",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"consensusResultId\": \"{{consensusResultId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400 for missing requestId', () => pm.expect(pm.response.code).to.equal(400));"
                 ]
               }
             }

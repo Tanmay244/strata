@@ -11,7 +11,11 @@ import java.time.Instant;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.springframework.stereotype.Service;
 
-/** Business logic for Create Analysis. */
+/**
+ * Business logic for Create Analysis.
+ *
+ * <p>AI-assisted; see docs/m2-ai-usage.md.
+ */
 @Service
 public class AnalysisService {
 
