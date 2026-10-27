@@ -18,7 +18,11 @@ import java.time.Instant;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
-/** Business logic for Finalize Decision. */
+/**
+ * Business logic for Finalize Decision.
+ *
+ * <p>AI-assisted; see docs/m2-ai-usage.md.
+ */
 @Service
 public class DecisionService {
 

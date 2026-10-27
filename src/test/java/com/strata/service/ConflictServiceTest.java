@@ -16,7 +16,11 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-/** Basic service test for default-threshold conflict detection and read-only store access. */
+/**
+ * Basic service test for default-threshold conflict detection and read-only store access.
+ *
+ * <p>AI-assisted; see docs/M4-AI-NOTES.md.
+ */
 class ConflictServiceTest {
 
   private InMemoryStore store;
