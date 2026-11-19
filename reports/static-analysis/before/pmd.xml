@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pmd xmlns="http://pmd.sourceforge.net/report/2.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://pmd.sourceforge.net/report/2.0.0 https://pmd.github.io/schema/report_2_0_0.xsd" version="7.3.0" timestamp="2026-11-19T11:21:54.648">
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/java/com/strata/model/FinalDecision.java">
+<violation beginline="13" endline="13" begincolumn="18" endcolumn="31" rule="AvoidFieldNameMatchingTypeName" ruleset="Error Prone" package="com.strata.model" class="FinalDecision" variable="finalDecision" externalInfoUrl="https://docs.pmd-code.org/pmd-doc-7.3.0/pmd_rules_java_errorprone.html#avoidfieldnamematchingtypename" priority="3">
+It is somewhat confusing to have a field name matching the declaring class name
+</violation>
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/java/com/strata/service/ConflictService.java">
+<violation beginline="60" endline="60" begincolumn="27" endcolumn="28" rule="AvoidLiteralsInIfCondition" ruleset="Error Prone" package="com.strata.service" class="ConflictService" method="detectConflicts" externalInfoUrl="https://docs.pmd-code.org/pmd-doc-7.3.0/pmd_rules_java_errorprone.html#avoidliteralsinifcondition" priority="3">
+Avoid using literals in if statements
+</violation>
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/java/com/strata/service/ConsensusService.java">
+<violation beginline="31" endline="31" begincolumn="48" endcolumn="64" rule="AvoidSynchronizedAtMethodLevel" ruleset="Multithreading" package="com.strata.service" class="ConsensusService" method="computeConsensus" externalInfoUrl="https://docs.pmd-code.org/pmd-doc-7.3.0/pmd_rules_java_multithreading.html#avoidsynchronizedatmethodlevel" priority="3">
+Use block level rather than method level synchronization
+</violation>
+<violation beginline="71" endline="71" begincolumn="32" endcolumn="33" rule="AvoidLiteralsInIfCondition" ruleset="Error Prone" package="com.strata.service" class="ConsensusService" method="validateEvidenceCount" externalInfoUrl="https://docs.pmd-code.org/pmd-doc-7.3.0/pmd_rules_java_errorprone.html#avoidliteralsinifcondition" priority="3">
+Avoid using literals in if statements
+</violation>
+<violation beginline="82" endline="82" begincolumn="29" endcolumn="59" rule="UseConcurrentHashMap" ruleset="Multithreading" package="com.strata.service" class="ConsensusService" method="selectConsensus" variable="groups" externalInfoUrl="https://docs.pmd-code.org/pmd-doc-7.3.0/pmd_rules_java_multithreading.html#useconcurrenthashmap" priority="3">
+If you run in Java5 or newer and have concurrent access, you should use the ConcurrentHashMap implementation
+</violation>
+<violation beginline="150" endline="150" begincolumn="26" endcolumn="31" rule="AvoidFieldNameMatchingMethodName" ruleset="Error Prone" package="com.strata.service" class="ClaimGroup" variable="claim" externalInfoUrl="https://docs.pmd-code.org/pmd-doc-7.3.0/pmd_rules_java_errorprone.html#avoidfieldnamematchingmethodname" priority="3">
+Field claim has the same name as a method
+</violation>
+<violation beginline="151" endline="151" begincolumn="20" endcolumn="26" rule="AvoidFieldNameMatchingMethodName" ruleset="Error Prone" package="com.strata.service" class="ClaimGroup" variable="weight" externalInfoUrl="https://docs.pmd-code.org/pmd-doc-7.3.0/pmd_rules_java_errorprone.html#avoidfieldnamematchingmethodname" priority="3">
+Field weight has the same name as a method
+</violation>
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/java/com/strata/service/EvidenceService.java">
+<violation beginline="37" endline="37" begincolumn="46" endcolumn="60" rule="AvoidSynchronizedAtMethodLevel" ruleset="Multithreading" package="com.strata.service" class="EvidenceService" method="submitEvidence" externalInfoUrl="https://docs.pmd-code.org/pmd-doc-7.3.0/pmd_rules_java_multithreading.html#avoidsynchronizedatmethodlevel" priority="3">
+Use block level rather than method level synchronization
+</violation>
+</file>
+</pmd>
