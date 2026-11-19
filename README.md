@@ -452,9 +452,12 @@ Token counts per tool session are recorded in the per-milestone notes files wher
 
 ## Project management
 
-Tasks are tracked as GitHub Issues. Each milestone has a corresponding issue that is closed
-when the PR merges:
-[GitHub Issues — Strata](https://github.com/Tanmay244/strata/issues)
+Tasks for the second iteration are tracked on the public GitHub Project board
+[Strata Iteration 2](https://github.com/users/heysiridu/projects/2). Each task is a GitHub issue
+in this repository (label `iteration-2`) with an assignee, a workstream, a reviewer and, for bug
+fixes, the finding id from the [AI review](reports/static-analysis/before/ai-review.md).
+Workstream owners are listed in [docs/team.md](docs/team.md). Iteration-1 tasks (M1 to M6) are
+the closed issues #1 to #6.
 
 All configuration files needed to build, run, and test the service are in this repository.
 No external accounts or credentials are required beyond Java 17 and Maven 3.9+.

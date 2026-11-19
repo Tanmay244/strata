@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<checkstyle version="10.17.0">
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/java/com/strata/dto/FinalizeDecisionRequest.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/java/com/strata/dto/SubmitEvidenceRequest.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/java/com/strata/dto/SubmitEvidenceResponse.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/java/com/strata/dto/FinalizeDecisionResponse.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/java/com/strata/dto/ComputeConsensusResponse.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/java/com/strata/dto/DetectConflictsResponse.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/java/com/strata/dto/CreateAnalysisResponse.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/java/com/strata/dto/CreateAnalysisRequest.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/java/com/strata/controller/ConsensusController.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/java/com/strata/controller/ConflictController.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/java/com/strata/controller/DecisionController.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/java/com/strata/controller/EvidenceController.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/java/com/strata/controller/AnalysisController.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/java/com/strata/common/ResourceNotFoundException.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/java/com/strata/common/ConflictException.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/java/com/strata/common/GlobalExceptionHandler.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/java/com/strata/common/UnprocessableException.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/java/com/strata/common/IdempotencyHelper.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/java/com/strata/common/InvalidRequestException.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/java/com/strata/model/AcceptanceStatus.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/java/com/strata/model/Analysis.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/java/com/strata/model/ConsensusResult.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/java/com/strata/model/FinalDecision.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/java/com/strata/model/AnalysisStatus.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/java/com/strata/model/Evidence.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/java/com/strata/service/ConflictService.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/java/com/strata/service/DecisionService.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/java/com/strata/service/ConsensusService.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/java/com/strata/service/AnalysisService.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/java/com/strata/service/EvidenceService.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/java/com/strata/StrataApplication.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/java/com/strata/store/InMemoryStore.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/test/java/com/strata/ConflictFixtures.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/test/java/com/strata/fixture/M3ApiTestApplication.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/test/java/com/strata/StrataApplicationTests.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/test/java/com/strata/controller/EvidenceControllerTest.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/test/java/com/strata/controller/ConsensusControllerTest.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/test/java/com/strata/controller/ConflictControllerTest.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/test/java/com/strata/ConflictApiTestApplication.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/test/java/com/strata/common/GlobalExceptionHandlerTest.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/test/java/com/strata/common/IdempotencyHelperTest.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/test/java/com/strata/service/ConsensusServiceTest.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/test/java/com/strata/service/EvidenceServiceTest.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/test/java/com/strata/service/DecisionServiceTest.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/test/java/com/strata/service/AnalysisServiceTest.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/test/java/com/strata/service/ConflictServiceTest.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/test/java/com/strata/store/InMemoryStoreTest.java">
+</file>
+<file name="/Users/siridu_2024/code/strata-wt-setup/src/main/resources/application.properties">
+</file>
+</checkstyle>

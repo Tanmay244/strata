@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  style:
+    name: Style (Checkstyle, Google Java Style)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - run: mvn -B -ntp checkstyle:check
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: checkstyle-report
+          path: target/checkstyle-result.xml
+
+  static-analysis:
+    name: Static analysis (SpotBugs + find-sec-bugs, PMD)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - run: mvn -B -ntp -DskipTests compile spotbugs:spotbugs pmd:pmd
+      # TODO(W1): after the "before" findings are fixed, replace the line above with
+      #   mvn -B -ntp -DskipTests compile spotbugs:check pmd:check
+      # so new findings fail the build.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: static-analysis-reports
+          path: |
+            target/spotbugsXml.xml
+            target/pmd.xml
+
+  test:
+    name: Unit, class, integration and API tests + coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - run: mvn -B -ntp verify
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-and-coverage-reports
+          path: |
+            target/surefire-reports
+            target/failsafe-reports
+            target/site/jacoco
