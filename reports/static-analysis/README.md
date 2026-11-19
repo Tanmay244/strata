@@ -29,10 +29,11 @@ PMD, 8 findings:
 
 find-sec-bugs reported no security findings.
 
-## Limits of these tools
-Neither tool finds the logic bugs from the iteration-1 feedback (`minimumEvidenceCount = 0`,
-`requestId` reuse across payloads or analyses). Those need an AI-assisted review or tests; add
-that report next to these and describe the prompt used.
+## AI-assisted logic review (third technique)
+SpotBugs and PMD do not find the logic bugs from the iteration-1 feedback
+(`minimumEvidenceCount = 0`, `requestId` reuse). An AI-assisted review does:
+[before/ai-review.md](before/ai-review.md) lists 13 findings (4 high, 5 medium, 4 low), 8 of
+them reproduced against the running service, with file and line, reproduction and fix.
 
 ## After
 W1 fixes the findings above, reruns both tools and commits the clean output to `after/`.
