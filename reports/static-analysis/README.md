@@ -32,7 +32,7 @@ find-sec-bugs reported no security findings.
 ## AI-assisted logic review (third technique)
 SpotBugs and PMD do not find the logic bugs from the iteration-1 feedback
 (`minimumEvidenceCount = 0`, `requestId` reuse). An AI-assisted review does:
-[before/ai-review.md](before/ai-review.md) lists 13 findings (4 high, 5 medium, 4 low), 8 of
+[before/ai-review.md](before/ai-review.md) lists 13 findings (4 high, 5 medium, 4 low), 7 of
 them reproduced against the running service, with file and line, reproduction and fix.
 
 ## After
